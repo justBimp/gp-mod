@@ -1,12 +1,12 @@
 {
-    "welcome": "Welcome to GarticPhone Mod",
-    "loading": "Loading...",
-    "settings": "Settings",
-    "update_available": "Update Available",
-    "install_update": "Install Update",
-    "error_occurred": "An error occurred",
-    "connected": "Connected",
-    "disconnected": "Disconnected",
-    "saving": "Saving...",
-    "saved": "Saved successfully"
+    "welcome": "مرحباً بك في GarticPhone Mod",
+    "loading": "جاري التحميل...",
+    "settings": "الإعدادات",
+    "update_available": "تحديث متوفر",
+    "install_update": "تثبيت التحديث",
+    "error_occurred": "حدث خطأ",
+    "connected": "متصل",
+    "disconnected": "غير متصل",
+    "saving": "جاري الحفظ...",
+    "saved": "تم الحفظ بنجاح"
 }
