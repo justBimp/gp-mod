@@ -25,6 +25,15 @@
     }
 }
 
+/* GarticPhone Mod Styles */
+.gpmod-notice {
+    background: #4cc9f0;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 5px;
+}
+
 .gp-mod-button {
     background: linear-gradient(135deg, #f72585, #b5179e);
     color: white;
