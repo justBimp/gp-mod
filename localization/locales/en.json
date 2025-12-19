@@ -1,1 +1,12 @@
-
+{
+    "welcome": "Welcome to GarticPhone Mod",
+    "loading": "Loading...",
+    "settings": "Settings",
+    "update_available": "Update Available",
+    "install_update": "Install Update",
+    "error_occurred": "An error occurred",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "saving": "Saving...",
+    "saved": "Saved successfully"
+}
