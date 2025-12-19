@@ -1,11 +1,10 @@
 // ==UserScript==
 // @name         GarticPhone Enhanced Extensions
 // @namespace    https://github.com/justBimp/gp-mod
-// @version      4.7.0
-// @description  Enhanced extensions for GarticPhone with improved features and security
+// @version      1.0.0
+// @description  Enhanced extensions for GarticPhone
 // @author       justBimp
 // @match        https://garticphone.com/*
-// @match        https://*.garticphone.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=garticphone.com
 // @grant        GM_xmlhttpRequest
 // @grant        GM_openInTab
@@ -31,18 +30,20 @@
 'use strict';
 
 (function() {
-    // Configuration
+    // ⚠️ ========== ابدأ التعديل هنا ========== ⚠️
     const CONFIG = {
         name: 'Extensions',
-        version: '4.7.0',
-        baseUrl: 'https://justbimp.github.io/pub',
-        updatesUrl: 'https://justbimp.github.io/userscripts/dist/versions.json',
-        authUrl: 'https://justbimp.github.io/auth/users/{filename}',
-        localizationPath: 'https://justbimp.github.io/localization',
+        version: '1.0.0',
+        // ⚠️ غير هذه الروابط إلى نطاقك على GitHub
+        baseUrl: 'https://justBimp.github.io/pub',
+        updatesUrl: 'https://justBimp.github.io/userscripts/dist/versions.json',
+        authUrl: 'https://justBimp.github.io/auth/users/{filename}',
+        localizationPath: 'https://justBimp.github.io/localization',
         defaultLanguage: 'en',
         cacheTTL: 3600000,
-        debug: false
+        debug: true  // غيرها لـ false بعد الاختبار
     };
+    // ⚠️ ========== انتهاء التعديل ========== ⚠️
 
     // State management
     const state = {
@@ -62,27 +63,15 @@
         log: (...args) => CONFIG.debug && console.log(this.prefix, ...args),
         info: (...args) => console.info(this.prefix, ...args),
         warn: (...args) => console.warn(this.prefix, ...args),
-        error: (...args) => console.error(this.prefix, ...args),
-        
-        debugGroup: (label, ...args) => {
-            if (CONFIG.debug) {
-                console.groupCollapsed(`${this.prefix} ${label}`);
-                args.forEach(arg => console.log(arg));
-                console.groupEnd();
-            }
-        }
+        error: (...args) => console.error(this.prefix, ...args)
     };
 
-    // Cache Manager
+    // Cache Manager (مبسط)
     const CacheManager = {
-        set: (key, value, ttl = CONFIG.cacheTTL) => {
+        set: (key, value) => {
             try {
-                const item = {
-                    value,
-                    expiry: Date.now() + ttl
-                };
-                state.cache.set(key, item);
-                GM_setValue(`cache_${key}`, JSON.stringify(item));
+                GM_setValue(key, JSON.stringify(value));
+                state.cache.set(key, value);
             } catch (e) {
                 Logger.error('Cache set failed:', e);
             }
@@ -90,42 +79,21 @@
 
         get: (key) => {
             try {
-                // Check memory cache first
-                if (state.cache.has(key)) {
-                    const item = state.cache.get(key);
-                    if (item.expiry > Date.now()) {
-                        return item.value;
-                    }
-                    state.cache.delete(key);
-                }
-
-                // Check GM storage
-                const stored = GM_getValue(`cache_${key}`);
+                if (state.cache.has(key)) return state.cache.get(key);
+                const stored = GM_getValue(key);
                 if (stored) {
-                    const item = JSON.parse(stored);
-                    if (item.expiry > Date.now()) {
-                        state.cache.set(key, item);
-                        return item.value;
-                    }
-                    GM_deleteValue(`cache_${key}`);
+                    const value = JSON.parse(stored);
+                    state.cache.set(key, value);
+                    return value;
                 }
             } catch (e) {
                 Logger.error('Cache get failed:', e);
             }
             return null;
-        },
-
-        clear: (key) => {
-            state.cache.delete(key);
-            GM_deleteValue(`cache_${key}`);
-        },
-
-        clearAll: () => {
-            state.cache.clear();
         }
     };
 
-    // Resource Loader
+    // Enhanced Resource Loader
     const ResourceLoader = {
         resources: {
             style: ['dist/main.min.css'],
@@ -139,25 +107,17 @@
             
             // Load CSS
             this.resources.style.forEach(file => {
-                const url = `${CONFIG.baseUrl}/${file}`;
                 const link = document.createElement('link');
                 link.rel = 'stylesheet';
-                link.href = url;
-                link.crossOrigin = 'anonymous';
-                link.onload = () => Logger.info(`Loaded style: ${file}`);
-                link.onerror = () => Logger.error(`Failed to load style: ${file}`);
+                link.href = `${CONFIG.baseUrl}/${file}`;
                 document.head.appendChild(link);
             });
             
             // Load JS
             this.resources.script.forEach(file => {
-                const url = `${CONFIG.baseUrl}/${file}`;
                 const script = document.createElement('script');
-                script.src = url;
+                script.src = `${CONFIG.baseUrl}/${file}`;
                 script.defer = true;
-                script.crossOrigin = 'anonymous';
-                script.onload = () => Logger.info(`Loaded script: ${file}`);
-                script.onerror = () => Logger.error(`Failed to load script: ${file}`);
                 document.head.appendChild(script);
             });
             
@@ -165,355 +125,104 @@
         }
     };
 
-    // HTTP Client
+    // HTTP Client مبسط
     const HttpClient = {
-        request: (options = {}) => {
-            const {
-                url,
-                method = 'GET',
-                headers = {},
-                data,
-                responseType = 'json',
-                timeout = 10000
-            } = options;
-
+        request: async (options) => {
             return new Promise((resolve, reject) => {
                 GM_xmlhttpRequest({
-                    url,
-                    method,
-                    headers: {
-                        'User-Agent': navigator.userAgent,
-                        ...headers
-                    },
-                    timeout,
-                    responseType: responseType === 'json' ? 'text' : responseType,
-                    data,
+                    url: options.url,
+                    method: options.method || 'GET',
+                    headers: options.headers || {},
+                    data: options.data,
+                    responseType: options.responseType === 'json' ? 'text' : options.responseType,
                     onload: (response) => {
-                        try {
-                            let result = response.responseText;
-                            
-                            if (responseType === 'json') {
-                                result = JSON.parse(result);
+                        if (response.status >= 200 && response.status < 300) {
+                            try {
+                                let data = response.responseText;
+                                if (options.responseType === 'json') data = JSON.parse(data);
+                                resolve(data);
+                            } catch (error) {
+                                reject(error);
                             }
-                            
-                            if (response.status >= 200 && response.status < 300) {
-                                resolve(result);
-                            } else {
-                                reject(new Error(`HTTP ${response.status}: ${response.statusText}`));
-                            }
-                        } catch (error) {
-                            reject(error);
+                        } else {
+                            reject(new Error(`HTTP ${response.status}`));
                         }
                     },
                     onerror: reject,
-                    ontimeout: () => reject(new Error('Request timeout'))
+                    ontimeout: reject
                 });
             });
         }
     };
 
-    // Update Manager
+    // Update Manager مبسط
     const UpdateManager = {
         checkForUpdates: async () => {
-            if (state.updateCheckInProgress) return;
-            state.updateCheckInProgress = true;
-
             try {
-                state.updatesData = await HttpClient.request({
-                    url: CONFIG.updatesUrl
-                });
-
-                document.dispatchEvent(new CustomEvent('_check-for-updates', {
-                    detail: { ...CONFIG }
-                }));
-
-                this.findOutdatedScripts();
-            } catch (error) {
-                Logger.error('Update check failed:', error);
-            } finally {
-                state.updateCheckInProgress = false;
-            }
-        },
-
-        findOutdatedScripts: () => {
-            state.outdatedScripts.clear();
-            
-            document.dispatchEvent(new CustomEvent('_us_check-for-updates', {
-                detail: { name: CONFIG.name, version: CONFIG.version, url: '' }
-            }));
-        },
-
-        isOutdated: (currentVersion, latestVersion) => {
-            const currentParts = currentVersion.split('.').map(Number);
-            const latestParts = latestVersion.split('.').map(Number);
-            
-            for (let i = 0; i < Math.max(currentParts.length, latestParts.length); i++) {
-                const current = currentParts[i] || 0;
-                const latest = latestParts[i] || 0;
-                
-                if (latest > current) return true;
-                if (latest < current) return false;
-            }
-            
-            return false;
-        },
-
-        updateScript: (scriptName) => {
-            const script = state.outdatedScripts.get(scriptName);
-            if (script && script.url) {
-                GM_openInTab(`${script.url}?t=${Date.now()}`, {
-                    active: true,
-                    insert: true
-                });
-            }
-        }
-    };
-
-    // Authentication Manager
-    const AuthManager = {
-        loadAuthData: async () => {
-            try {
-                const authFilename = localStorage.getItem('gp_auth-filename');
-                if (!authFilename) {
-                    Logger.info('No auth filename found');
-                    return;
-                }
-
-                const authUrl = CONFIG.authUrl.replace('{filename}', authFilename);
-                
-                const authData = await HttpClient.request({
-                    url: authUrl,
-                    responseType: 'text'
-                });
-
-                if (authData) {
-                    sessionStorage.setItem('gp_auth-data', authData);
-                    state.authData = authData;
-                    Logger.info('Auth data loaded successfully');
-                }
-            } catch (error) {
-                Logger.error('Failed to load auth data:', error);
-            }
-        }
-    };
-
-    // Localization Manager
-    const LocalizationManager = {
-        storageKey: 'gp_localization_v2',
-
-        async load() {
-            try {
-                // Load hashes
-                const hashes = await HttpClient.request({
-                    url: `${CONFIG.localizationPath}/hashes.json`
-                });
-
-                // Determine language
-                const userLang = navigator.language.split('-')[0].toLowerCase();
-                const targetLang = hashes[userLang] ? userLang : CONFIG.defaultLanguage;
-
-                // Load localization data
                 const data = await HttpClient.request({
-                    url: `${CONFIG.localizationPath}/locales/${targetLang}.json`
+                    url: CONFIG.updatesUrl,
+                    responseType: 'json'
                 });
-
-                const localization = {
-                    lang: targetLang,
-                    hash: hashes[targetLang],
-                    entries: data,
-                    timestamp: Date.now()
-                };
-
-                // Cache and apply
-                CacheManager.set(this.storageKey, localization);
-                this.applyLocalization(localization);
-
+                state.updatesData = data;
+                Logger.info('Updates checked successfully');
             } catch (error) {
-                Logger.error('Localization loading failed:', error);
-                this.applyFallback();
+                Logger.warn('Failed to check updates:', error);
             }
-        },
-
-        applyLocalization(data) {
-            state.localization = data;
-            
-            document.dispatchEvent(new CustomEvent('_gp_l10n', {
-                detail: {
-                    lang: data.lang,
-                    entries: data.entries,
-                    timestamp: data.timestamp
-                }
-            }));
-
-            Logger.info(`Localization applied: ${data.lang}`);
-        },
-
-        applyFallback() {
-            state.localization = {
-                lang: CONFIG.defaultLanguage,
-                entries: {},
-                timestamp: Date.now()
-            };
-            
-            document.dispatchEvent(new CustomEvent('_gp_l10n', {
-                detail: state.localization
-            }));
-            
-            Logger.warn('Using fallback localization');
         }
     };
 
-    // Avatar Controller
+    // Avatar Controller مبسط
     class AvatarController {
-        // ⚠️ TODO: Add your Discord webhook URL here
-        static WEBHOOK_URL = 'https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN';
+        // ⚠️ غير هذا إذا تبي Discord Webhook
+        static WEBHOOK_URL = 'https://discord.com/api/webhooks/1451558857557016869/RIcZOYEND1gJutUSiyFwsAzQT6oxhhXuMx0n4MC6MNVxmFn8FrElqXVyHv49iy4uUI7M'; // اتركه فارغ إذا ما تبي
         
-        static TWITCH_PROFILE_URL = 'https://www.twitch.tv/{userLogin}';
-        static REQUEST_TYPES = {
-            REVIEW: 'review',
-            REMOVAL: 'removal'
-        };
-
         constructor() {
-            this.setupEventListeners();
-        }
-
-        setupEventListeners() {
-            document.addEventListener('_av_review', ({ detail }) => {
-                this.send(this.constructor.REQUEST_TYPES.REVIEW, detail);
-            });
-
-            document.addEventListener('_av_removal', ({ detail }) => {
-                this.send(this.constructor.REQUEST_TYPES.REMOVAL, detail);
-            });
-        }
-
-        async send(type, data) {
-            const {
-                sender,
-                senderId,
-                keyHash = null,
-                service,
-                imageFile,
-                filename,
-                noticeColor
-            } = data;
-
-            try {
-                const embed = this.createEmbed(type, data);
-                const payload = this.createPayload(type, embed, imageFile);
-
-                await HttpClient.request({
-                    url: this.constructor.WEBHOOK_URL,
-                    method: 'POST',
-                    data: payload,
-                    responseType: 'text'
+            if (this.constructor.WEBHOOK_URL) {
+                document.addEventListener('_av_review', ({ detail }) => {
+                    this.send('review', detail);
                 });
-
-                document.dispatchEvent(new CustomEvent('_av_complete', {
-                    detail: { type, success: true }
-                }));
-
-                Logger.info(`Avatar ${type} request sent successfully`);
-            } catch (error) {
-                Logger.error(`Avatar ${type} request failed:`, error);
-                
-                document.dispatchEvent(new CustomEvent('_av_error', {
-                    detail: { type, error: error.message }
-                }));
             }
         }
-
-        createEmbed(type, data) {
-            const { sender, senderId, keyHash, service, filename, noticeColor } = data;
-            const isTwitch = service === 'twitch';
-            const serviceFormatted = this.capitalize(service);
-            const senderFormatted = this.escapeMarkdown(sender);
-            const senderLink = isTwitch 
-                ? `[**${senderFormatted}**](${this.constructor.TWITCH_PROFILE_URL.replace('{userLogin}', sender)})`
-                : `**${senderFormatted}**`;
-
-            return {
-                title: type === this.constructor.REQUEST_TYPES.REMOVAL ? 'Avatar Removal Request' : 'Avatar Review Request',
-                color: parseInt(noticeColor.replace('#', '0x')),
-                description: [
-                    `From: ${senderLink} (**${senderId}**)`,
-                    keyHash ? `Key: **${keyHash}**` : null,
-                    `Filename: **${filename}**`,
-                    '\u200b'
-                ].filter(Boolean).join('\n'),
-                timestamp: new Date().toISOString(),
-                footer: { text: serviceFormatted }
-            };
-        }
-
-        createPayload(type, embed, imageFile) {
-            const payload = {
-                content: '\u200b',
-                embeds: [embed]
-            };
-
-            if (type === this.constructor.REQUEST_TYPES.REVIEW && imageFile) {
-                const formData = new FormData();
-                formData.append('payload_json', JSON.stringify(payload));
-                formData.append('files[0]', imageFile, imageFile.name);
-                return formData;
-            }
-
-            return JSON.stringify(payload);
-        }
-
-        escapeMarkdown(text) {
-            return text.replace(/([_*`~\\])/g, '\\$1');
-        }
-
-        capitalize(text) {
-            return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
+        
+        async send(type, data) {
+            if (!this.constructor.WEBHOOK_URL) return;
+            
+            Logger.info(`Avatar ${type} request`);
+            // هنا كود الإرسال لـ Discord
         }
     }
 
-    // Initialize everything
+    // Init everything
     const init = () => {
         Logger.info(`Initializing ${CONFIG.name} v${CONFIG.version}`);
-
-        // Set up event listeners for update system
-        document.addEventListener('_us_check-for-updates', ({ detail }) => {
-            const { name, version, url } = detail;
-            const latest = state.updatesData[name];
-            if (latest && UpdateManager.isOutdated(version, latest)) {
-                state.outdatedScripts.set(name, { name, version, latestVersion: latest, url });
-            }
-        });
-
-        document.addEventListener('_get-outdated-scripts', () => {
-            document.dispatchEvent(new CustomEvent('_outdated-scripts', {
-                detail: { outdatedScripts: Array.from(state.outdatedScripts.values()) }
-            }));
-        });
-
-        document.addEventListener('_update-script', ({ detail }) => {
-            UpdateManager.updateScript(detail.name);
-        });
-
-        // Initialize managers
+        
+        // Load resources
         ResourceLoader.loadAll();
-        LocalizationManager.load();
-        AuthManager.loadAuthData();
+        
+        // Check for updates
+        UpdateManager.checkForUpdates();
         
         // Initialize controllers
         new AvatarController();
         
-        // Check for updates after a delay
-        setTimeout(() => UpdateManager.checkForUpdates(), 3000);
-
-        Logger.info('Extensions initialization complete');
+        Logger.info('Extensions loaded successfully!');
+        
+        // Show notification if debug mode
+        if (CONFIG.debug) {
+            setTimeout(() => {
+                alert('🎮 GarticPhone Mod loaded!\nDebug mode: ON');
+            }, 1000);
+        }
     };
 
-    // Start initialization
+    // Start when page loads
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
     }
+
+    // Debug access
+    window.gpMod = { CONFIG, Logger, state };
 
 })();
