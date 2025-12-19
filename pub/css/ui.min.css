@@ -1,1 +1,82 @@
+/* واجهة GarticPhone Mod */
+.gpmod-ui {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 99999;
+    background: rgba(25, 25, 35, 0.95);
+    border: 2px solid #4cc9f0;
+    border-radius: 15px;
+    padding: 15px;
+    min-width: 300px;
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    backdrop-filter: blur(10px);
+}
 
+.gpmod-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #4cc9f0;
+}
+
+.gpmod-title {
+    font-size: 1.3em;
+    color: #4cc9f0;
+    font-weight: bold;
+}
+
+.gpmod-close {
+    background: #f72585;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.gpmod-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+.gpmod-tab {
+    flex: 1;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.gpmod-tab.active {
+    background: #4cc9f0;
+    color: #1a1a1a;
+    font-weight: bold;
+}
+
+.gpmod-content {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/* تخصيص شريط التمرير */
+.gpmod-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.gpmod-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.gpmod-content::-webkit-scrollbar-thumb {
+    background: #4cc9f0;
+    border-radius: 4px;
+}
